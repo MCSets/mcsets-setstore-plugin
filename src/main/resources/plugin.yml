@@ -1,0 +1,29 @@
+name: MCSetsSetStore
+version: ${project.version}
+main: com.mcsets.setstore.SetStorePlugin
+api-version: '1.20'
+description: MCSets SetStore integration for automatic purchase delivery
+author: MCSets
+website: https://mcsets.com
+
+commands:
+  verify:
+    description: Generate a verification code to link your Minecraft account
+    usage: /verify
+    permission: mcsets.verify
+  setstore:
+    description: SetStore admin commands
+    usage: /setstore <reload|status|queue|reconnect>
+    permission: mcsets.admin
+    aliases: [ss, mcsets]
+
+permissions:
+  mcsets.verify:
+    description: Allows players to verify their account
+    default: true
+  mcsets.admin:
+    description: Access to SetStore admin commands
+    default: op
+  mcsets.notify:
+    description: Receive notifications about deliveries
+    default: op

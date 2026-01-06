@@ -1,0 +1,78 @@
+# MCSets SetStore Plugin Configuration
+# Documentation: https://docs.mcsets.com/setstore/plugin
+
+# Your server API key from the SetStore dashboard
+# Get this from: https://mcsets.com/dashboard/servers
+api-key: "your-api-key-here"
+
+# API Settings
+api:
+  # Base URL for the SetStore API (don't change unless instructed)
+  base-url: "https://mcsets.com/api/v1/setstore"
+  # Connection timeout in seconds
+  timeout: 30
+
+# Server Settings
+server:
+  # Override server IP (leave empty for auto-detection)
+  ip: ""
+  # Override server port (0 for auto-detection)
+  port: 0
+
+# WebSocket Settings
+websocket:
+  # Enable WebSocket for real-time delivery notifications
+  # If WebSocket server is unavailable, the plugin will automatically fall back to polling
+  enabled: true
+  # Reconnect delay in seconds after disconnect
+  reconnect-delay: 5
+  # Maximum reconnection attempts before falling back to polling only (0 for unlimited)
+  max-reconnect-attempts: 5
+
+# Polling Settings (fallback when WebSocket is disabled/unavailable)
+polling:
+  # Enable polling as fallback
+  enabled: true
+  # Polling interval in seconds
+  interval: 60
+
+# Heartbeat Settings
+heartbeat:
+  # Heartbeat interval in seconds
+  interval: 300
+
+# Delivery Settings
+delivery:
+  # Delay between command executions in ticks (20 ticks = 1 second)
+  command-delay: 5
+  # Require player to be online to execute commands
+  require-online: false
+  # Queue deliveries for offline players
+  queue-offline: true
+
+# Messages
+messages:
+  prefix: "&8[&bSetStore&8] &7"
+  verify-code: "&aYour verification code is: &f{code}"
+  verify-expires: "&7This code expires in &f{minutes} &7minutes."
+  verify-instructions: "&7Enter this code at: &f{url}"
+  delivery-received: "&aYou have received: &f{package}"
+  delivery-executed: "&aAll items from &f{package} &ahave been delivered!"
+  no-permission: "&cYou don't have permission to do this."
+  reload-success: "&aConfiguration reloaded successfully!"
+  status-connected: "&aConnected to SetStore"
+  status-disconnected: "&cDisconnected from SetStore"
+
+# Logging
+logging:
+  # Log level: DEBUG, INFO, WARNING, ERROR
+  level: INFO
+  # Log all API requests
+  log-requests: false
+  # Log all deliveries
+  log-deliveries: true
+  # Log all commands executed
+  log-commands: true
+
+# Debug Mode
+debug: false
