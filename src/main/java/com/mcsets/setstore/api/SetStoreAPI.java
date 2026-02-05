@@ -38,6 +38,8 @@ public class SetStoreAPI {
 
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
     private static final String HEADER_API_KEY = "X-API-Key";
+    private static final String HEADER_ACCEPT = "Accept";
+    private static final String APPLICATION_JSON = "application/json";
 
     private final SetStorePlugin plugin;
     private final OkHttpClient client;
@@ -115,6 +117,7 @@ public class SetStoreAPI {
         Request request = new Request.Builder()
                 .url(baseUrl + "/queue")
                 .header(HEADER_API_KEY, apiKey)
+                .header(HEADER_ACCEPT, APPLICATION_JSON)
                 .get()
                 .build();
 
@@ -155,6 +158,7 @@ public class SetStoreAPI {
         Request request = new Request.Builder()
                 .url(baseUrl + "/deliver")
                 .header(HEADER_API_KEY, apiKey)
+                .header(HEADER_ACCEPT, APPLICATION_JSON)
                 .post(RequestBody.create(json, JSON))
                 .build();
 
@@ -188,6 +192,7 @@ public class SetStoreAPI {
         Request request = new Request.Builder()
                 .url(baseUrl + "/online")
                 .header(HEADER_API_KEY, apiKey)
+                .header(HEADER_ACCEPT, APPLICATION_JSON)
                 .post(RequestBody.create(json, JSON))
                 .build();
 
@@ -215,6 +220,7 @@ public class SetStoreAPI {
         Request request = new Request.Builder()
                 .url(baseUrl + "/heartbeat")
                 .header(HEADER_API_KEY, apiKey)
+                .header(HEADER_ACCEPT, APPLICATION_JSON)
                 .post(RequestBody.create("{}", JSON))
                 .build();
 
@@ -248,6 +254,7 @@ public class SetStoreAPI {
         Request request = new Request.Builder()
                 .url(baseUrl + "/verify")
                 .header(HEADER_API_KEY, apiKey)
+                .header(HEADER_ACCEPT, APPLICATION_JSON)
                 .post(RequestBody.create(json, JSON))
                 .build();
 
