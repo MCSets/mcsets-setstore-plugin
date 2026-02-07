@@ -142,7 +142,7 @@ public class SetStorePlugin extends JavaPlugin {
 
         String serverIp = pluginConfig.getServerIp();
         int serverPort = pluginConfig.getServerPort();
-        String serverVersion = Bukkit.getMinecraftVersion();
+        String serverVersion = Bukkit.getBukkitVersion().split("-")[0];
         List<String> onlinePlayers = getOnlinePlayerNames();
 
         try {

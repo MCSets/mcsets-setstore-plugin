@@ -10,8 +10,7 @@
 package com.mcsets.setstore.config;
 
 import com.mcsets.setstore.SetStorePlugin;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
 
 /**
@@ -139,12 +138,12 @@ public class PluginConfig {
         return config.getString("messages.prefix", "&8[&bSetStore&8] &7");
     }
 
-    public Component getMessage(String key) {
+    public String getMessage(String key) {
         String message = config.getString("messages." + key, "");
         return formatMessage(getMessagePrefix() + message);
     }
 
-    public Component getMessage(String key, String... replacements) {
+    public String getMessage(String key, String... replacements) {
         String message = config.getString("messages." + key, "");
         String fullMessage = getMessagePrefix() + message;
 
@@ -157,8 +156,8 @@ public class PluginConfig {
         return formatMessage(fullMessage);
     }
 
-    public Component formatMessage(String message) {
-        return LegacyComponentSerializer.legacyAmpersand().deserialize(message);
+    public String formatMessage(String message) {
+        return ChatColor.translateAlternateColorCodes('&', message);
     }
 
     // ==================== Logging Settings ====================

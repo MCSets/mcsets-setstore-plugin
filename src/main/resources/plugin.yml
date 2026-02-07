@@ -1,7 +1,6 @@
 name: MCSetsSetStore
 version: ${project.version}
 main: com.mcsets.setstore.SetStorePlugin
-api-version: '1.20'
 description: MCSets SetStore integration for automatic purchase delivery
 author: MCSets
 website: https://mcsets.com

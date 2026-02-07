@@ -39,10 +39,12 @@ public class VerifyCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!(sender instanceof Player player)) {
+        if (!(sender instanceof Player)) {
             sender.sendMessage(plugin.getPluginConfig().formatMessage("&cThis command can only be used by players!"));
             return true;
         }
+
+        final Player player = (Player) sender;
 
         if (!player.hasPermission("mcsets.verify")) {
             player.sendMessage(plugin.getPluginConfig().getMessage("no-permission"));
