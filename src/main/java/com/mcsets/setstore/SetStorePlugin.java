@@ -134,6 +134,9 @@ public class SetStorePlugin extends Plugin {
         String serverIp = pluginConfig.getServerIp();
         int serverPort = pluginConfig.getServerPort();
         String serverVersion = ProxyServer.getInstance().getVersion();
+        if (serverVersion.length() > 50) {
+            serverVersion = serverVersion.substring(0, 50);
+        }
         List<String> onlinePlayers = getOnlinePlayerNames();
 
         try {

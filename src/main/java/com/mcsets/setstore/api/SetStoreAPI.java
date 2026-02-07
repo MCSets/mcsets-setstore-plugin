@@ -92,6 +92,8 @@ public class SetStoreAPI {
 
         Request request = new Request.Builder()
                 .url(baseUrl + "/connect")
+                .header(HEADER_API_KEY, apiKey)
+                .header(HEADER_ACCEPT, APPLICATION_JSON)
                 .post(RequestBody.create(json, JSON))
                 .build();
 
@@ -99,7 +101,12 @@ public class SetStoreAPI {
             String responseBody = getResponseBody(response);
             logResponse("Connect", responseBody);
 
-            return gson.fromJson(responseBody, ConnectResponse.class);
+            if (response.isSuccessful()) {
+                return gson.fromJson(responseBody, ConnectResponse.class);
+            } else {
+                plugin.logError("Connect failed with status " + response.code() + ": " + responseBody);
+                return null;
+            }
         } catch (IOException e) {
             plugin.logError("Connect request failed: " + e.getMessage());
             return null;
@@ -262,7 +269,12 @@ public class SetStoreAPI {
             String responseBody = getResponseBody(response);
             logResponse("Verify", responseBody);
 
-            return gson.fromJson(responseBody, VerifyResponse.class);
+            if (response.isSuccessful()) {
+                return gson.fromJson(responseBody, VerifyResponse.class);
+            } else {
+                plugin.logError("Verify failed with status " + response.code() + ": " + responseBody);
+                return null;
+            }
         } catch (IOException e) {
             plugin.logError("Verify request failed: " + e.getMessage());
             return null;
