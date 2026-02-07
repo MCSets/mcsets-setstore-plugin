@@ -15,11 +15,12 @@ import com.google.gson.JsonParser;
 import com.mcsets.setstore.SetStorePlugin;
 import com.mcsets.setstore.models.Delivery;
 import com.mcsets.setstore.models.WebSocketConfig;
-import org.bukkit.Bukkit;
+import net.md_5.bungee.api.ProxyServer;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 
 import java.net.URI;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -250,8 +251,7 @@ public class SetStoreWebSocket {
                 Delivery delivery = gson.fromJson(data.get("delivery"), Delivery.class);
                 plugin.logInfo("New delivery received via WebSocket: " + delivery);
 
-                Bukkit.getScheduler().runTask(plugin, () ->
-                        plugin.getDeliveryExecutor().executeDelivery(delivery));
+                plugin.getDeliveryExecutor().executeDelivery(delivery);
             }
         } catch (Exception e) {
             plugin.logError("Error handling delivery event: " + e.getMessage());
@@ -269,7 +269,7 @@ public class SetStoreWebSocket {
             int count = data.has("count") ? data.get("count").getAsInt() : 0;
             if (count > 0) {
                 plugin.logInfo("Received notification of " + count + " pending deliveries");
-                Bukkit.getScheduler().runTaskAsynchronously(plugin, () ->
+                ProxyServer.getInstance().getScheduler().runAsync(plugin, () ->
                         plugin.getDeliveryExecutor().processQueue());
             }
         } catch (Exception e) {
@@ -294,11 +294,11 @@ public class SetStoreWebSocket {
         int delay = plugin.getPluginConfig().getWebSocketReconnectDelay();
         plugin.logDebug("Reconnecting to WebSocket in " + delay + " seconds (attempt " + attempts + ")");
 
-        Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, () -> {
+        ProxyServer.getInstance().getScheduler().schedule(plugin, () -> {
             if (!connected.get() && !permanentlyDisabled.get()) {
                 connect();
             }
-        }, delay * 20L);
+        }, delay, TimeUnit.SECONDS);
     }
 
     /**

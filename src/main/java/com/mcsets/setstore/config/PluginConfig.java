@@ -10,11 +10,18 @@
 package com.mcsets.setstore.config;
 
 import com.mcsets.setstore.SetStorePlugin;
-import org.bukkit.ChatColor;
-import org.bukkit.configuration.file.FileConfiguration;
+import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.config.Configuration;
+import net.md_5.bungee.config.ConfigurationProvider;
+import net.md_5.bungee.config.YamlConfiguration;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
 
 /**
- * Configuration manager for the SetStore plugin.
+ * Configuration manager for the SetStore plugin (BungeeCord).
  * Handles reading and writing plugin settings.
  *
  * @author MCSets
@@ -23,7 +30,8 @@ import org.bukkit.configuration.file.FileConfiguration;
 public class PluginConfig {
 
     private final SetStorePlugin plugin;
-    private FileConfiguration config;
+    private Configuration config;
+    private File configFile;
 
     /**
      * Creates a new configuration manager.
@@ -32,15 +40,51 @@ public class PluginConfig {
      */
     public PluginConfig(SetStorePlugin plugin) {
         this.plugin = plugin;
+        saveDefaultConfig();
         reload();
+    }
+
+    /**
+     * Saves the default config.yml from the JAR if it doesn't exist.
+     */
+    private void saveDefaultConfig() {
+        if (!plugin.getDataFolder().exists()) {
+            plugin.getDataFolder().mkdir();
+        }
+
+        configFile = new File(plugin.getDataFolder(), "config.yml");
+
+        if (!configFile.exists()) {
+            try (InputStream in = plugin.getResourceAsStream("config.yml")) {
+                if (in != null) {
+                    Files.copy(in, configFile.toPath());
+                }
+            } catch (IOException e) {
+                plugin.getLogger().severe("Failed to save default config: " + e.getMessage());
+            }
+        }
     }
 
     /**
      * Reloads the configuration from disk.
      */
     public void reload() {
-        plugin.reloadConfig();
-        config = plugin.getConfig();
+        try {
+            config = ConfigurationProvider.getProvider(YamlConfiguration.class).load(configFile);
+        } catch (IOException e) {
+            plugin.getLogger().severe("Failed to load config: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Saves the configuration to disk.
+     */
+    private void saveConfig() {
+        try {
+            ConfigurationProvider.getProvider(YamlConfiguration.class).save(config, configFile);
+        } catch (IOException e) {
+            plugin.getLogger().severe("Failed to save config: " + e.getMessage());
+        }
     }
 
     /**
@@ -72,10 +116,7 @@ public class PluginConfig {
     public String getServerIp() {
         String ip = config.getString("server.ip", "");
         if (ip == null || ip.isEmpty()) {
-            ip = plugin.getServer().getIp();
-            if (ip == null || ip.isEmpty()) {
-                ip = "localhost";
-            }
+            ip = "localhost";
         }
         return ip;
     }
@@ -83,7 +124,12 @@ public class PluginConfig {
     public int getServerPort() {
         int port = config.getInt("server.port", 0);
         if (port <= 0) {
-            port = plugin.getServer().getPort();
+            try {
+                port = net.md_5.bungee.api.ProxyServer.getInstance().getConfig()
+                        .getListeners().iterator().next().getHost().getPort();
+            } catch (Exception e) {
+                port = 25577;
+            }
         }
         return port;
     }
@@ -121,7 +167,7 @@ public class PluginConfig {
     // ==================== Delivery Settings ====================
 
     public int getCommandDelay() {
-        return config.getInt("delivery.command-delay", 5);
+        return config.getInt("delivery.command-delay", 500);
     }
 
     public boolean isRequireOnline() {
@@ -172,7 +218,7 @@ public class PluginConfig {
 
     public void setLogRequests(boolean value) {
         config.set("logging.log-requests", value);
-        plugin.saveConfig();
+        saveConfig();
     }
 
     public boolean isLogDeliveries() {
@@ -181,7 +227,7 @@ public class PluginConfig {
 
     public void setLogDeliveries(boolean value) {
         config.set("logging.log-deliveries", value);
-        plugin.saveConfig();
+        saveConfig();
     }
 
     public boolean isLogCommands() {
@@ -190,7 +236,7 @@ public class PluginConfig {
 
     public void setLogCommands(boolean value) {
         config.set("logging.log-commands", value);
-        plugin.saveConfig();
+        saveConfig();
     }
 
     // ==================== Debug Settings ====================
@@ -201,7 +247,7 @@ public class PluginConfig {
 
     public void setDebug(boolean value) {
         config.set("debug", value);
-        plugin.saveConfig();
+        saveConfig();
     }
 
     /**

@@ -13,13 +13,15 @@ import com.mcsets.setstore.SetStorePlugin;
 import com.mcsets.setstore.models.Delivery;
 import com.mcsets.setstore.models.DeliveryAction;
 import com.mcsets.setstore.models.QueueResponse;
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
+import net.md_5.bungee.api.ProxyServer;
+import net.md_5.bungee.api.chat.TextComponent;
+import net.md_5.bungee.api.connection.ProxiedPlayer;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -71,8 +73,7 @@ public class DeliveryExecutor {
 
             for (Delivery delivery : deliveries) {
                 if (!processingDeliveries.containsKey(delivery.getId())) {
-                    // Run on main thread for command execution
-                    Bukkit.getScheduler().runTask(plugin, () -> executeDelivery(delivery));
+                    executeDelivery(delivery);
                 }
             }
 
@@ -115,23 +116,23 @@ public class DeliveryExecutor {
             }
 
             // Check if player is online (if required)
-            Player player = null;
+            ProxiedPlayer player = null;
             if (playerUuidStr != null && !playerUuidStr.isEmpty()) {
                 try {
                     UUID playerUuid = UUID.fromString(playerUuidStr);
-                    player = Bukkit.getPlayer(playerUuid);
+                    player = ProxyServer.getInstance().getPlayer(playerUuid);
                 } catch (IllegalArgumentException e) {
                     plugin.logDebug("Invalid UUID format: " + playerUuidStr);
                 }
             }
 
             if (player == null) {
-                player = Bukkit.getPlayerExact(playerName);
+                player = ProxyServer.getInstance().getPlayer(playerName);
             }
 
             boolean requireOnline = plugin.getPluginConfig().isRequireOnline();
             if (requireOnline && player == null) {
-                errorMessage = "Player '" + playerName + "' not found on server";
+                errorMessage = "Player '" + playerName + "' not found on proxy";
                 status = "failed";
                 plugin.logWarning("Delivery #" + delivery.getId() + " failed: " + errorMessage);
             } else {
@@ -141,7 +142,7 @@ public class DeliveryExecutor {
                     boolean allSucceeded = true;
                     boolean anySucceeded = false;
 
-                    int commandDelay = plugin.getPluginConfig().getCommandDelay();
+                    int commandDelayMs = plugin.getPluginConfig().getCommandDelay();
                     int delayOffset = 0;
 
                     for (DeliveryAction action : actions) {
@@ -160,16 +161,16 @@ public class DeliveryExecutor {
                                 final int currentDelay = delayOffset;
 
                                 if (currentDelay > 0) {
-                                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                                    ProxyServer.getInstance().getScheduler().schedule(plugin, () -> {
                                         executeCommand(finalCommand, delivery.getId());
-                                    }, currentDelay);
+                                    }, currentDelay, TimeUnit.MILLISECONDS);
                                 } else {
                                     executeCommand(finalCommand, delivery.getId());
                                 }
 
                                 executedActions.add(command);
                                 anySucceeded = true;
-                                delayOffset += commandDelay;
+                                delayOffset += commandDelayMs;
                             }
                         } catch (Exception e) {
                             allSucceeded = false;
@@ -189,14 +190,13 @@ public class DeliveryExecutor {
                 }
 
                 // Notify player if online
-                if (player != null && player.isOnline()) {
-                    final Player finalPlayer = player;
-                    Bukkit.getScheduler().runTask(plugin, () -> {
-                        finalPlayer.sendMessage(plugin.getPluginConfig().getMessage("delivery-received",
-                            "{package}", packageName));
-                        finalPlayer.sendMessage(plugin.getPluginConfig().getMessage("delivery-executed",
-                            "{package}", packageName));
-                    });
+                if (player != null && player.isConnected()) {
+                    player.sendMessage(new TextComponent(
+                            plugin.getPluginConfig().getMessage("delivery-received",
+                                    "{package}", packageName)));
+                    player.sendMessage(new TextComponent(
+                            plugin.getPluginConfig().getMessage("delivery-executed",
+                                    "{package}", packageName)));
                 }
             }
 
@@ -215,7 +215,7 @@ public class DeliveryExecutor {
             final String finalErrorMessage = errorMessage;
             final List<String> finalExecutedActions = executedActions;
 
-            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            ProxyServer.getInstance().getScheduler().runAsync(plugin, () -> {
                 try {
                     plugin.getApi().reportDelivery(
                         delivery.getId(),
@@ -243,7 +243,8 @@ public class DeliveryExecutor {
                 plugin.logInfo("[Delivery #" + deliveryId + "] Executing: " + command);
             }
 
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+            ProxyServer.getInstance().getPluginManager().dispatchCommand(
+                    ProxyServer.getInstance().getConsole(), command);
 
         } catch (Exception e) {
             plugin.logError("[Delivery #" + deliveryId + "] Command failed: " + command + " - " + e.getMessage());

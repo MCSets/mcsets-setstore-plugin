@@ -10,14 +10,14 @@
 package com.mcsets.setstore.listeners;
 
 import com.mcsets.setstore.SetStorePlugin;
-import org.bukkit.Bukkit;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
-import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
+import net.md_5.bungee.api.ProxyServer;
+import net.md_5.bungee.api.plugin.Listener;
+import net.md_5.bungee.event.EventHandler;
+import net.md_5.bungee.api.event.PostLoginEvent;
+import net.md_5.bungee.api.event.PlayerDisconnectEvent;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Event listener for player join/quit events.
@@ -39,37 +39,37 @@ public class PlayerListener implements Listener {
         this.plugin = plugin;
     }
 
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onPlayerJoin(PlayerJoinEvent event) {
+    @EventHandler
+    public void onPlayerJoin(PostLoginEvent event) {
         if (!plugin.isConnected()) {
             return;
         }
 
         // Update online players list after a short delay to ensure player is fully joined
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+        ProxyServer.getInstance().getScheduler().schedule(plugin, () -> {
             List<String> onlinePlayers = plugin.getOnlinePlayerNames();
             plugin.notifyOnlinePlayers(onlinePlayers);
 
             // Also trigger queue processing for this player's pending deliveries
-            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            ProxyServer.getInstance().getScheduler().runAsync(plugin, () -> {
                 plugin.getDeliveryExecutor().processQueue();
             });
-        }, 20L); // 1 second delay
+        }, 1, TimeUnit.SECONDS);
 
         plugin.logDebug("Player joined: " + event.getPlayer().getName() + " - notifying SetStore");
     }
 
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onPlayerQuit(PlayerQuitEvent event) {
+    @EventHandler
+    public void onPlayerQuit(PlayerDisconnectEvent event) {
         if (!plugin.isConnected()) {
             return;
         }
 
         // Update online players list after player leaves
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+        ProxyServer.getInstance().getScheduler().schedule(plugin, () -> {
             List<String> onlinePlayers = plugin.getOnlinePlayerNames();
             plugin.notifyOnlinePlayers(onlinePlayers);
-        }, 5L); // Short delay to ensure player is removed
+        }, 250, TimeUnit.MILLISECONDS);
 
         plugin.logDebug("Player quit: " + event.getPlayer().getName() + " - notifying SetStore");
     }

@@ -5,12 +5,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.mcsets</groupId>
-    <artifactId>mcsets-setstore-plugin</artifactId>
+    <artifactId>mcsets-setstore-plugin-bungee</artifactId>
     <version>1.0.0</version>
     <packaging>jar</packaging>
 
-    <name>MCSets SetStore Plugin</name>
-    <description>PaperMC plugin for MCSets SetStore - automatic delivery of purchases</description>
+    <name>MCSets SetStore Plugin (BungeeCord)</name>
+    <description>BungeeCord/Waterfall plugin for MCSets SetStore - automatic delivery of purchases</description>
     <url>https://mcsets.com</url>
 
     <properties>
@@ -21,17 +21,17 @@
 
     <repositories>
         <repository>
-            <id>spigotmc</id>
-            <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
+            <id>bungeecord-repo</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
         </repository>
     </repositories>
 
     <dependencies>
-        <!-- Spigot API (1.8.8+) -->
+        <!-- BungeeCord API -->
         <dependency>
-            <groupId>org.spigotmc</groupId>
-            <artifactId>spigot-api</artifactId>
-            <version>1.8.8-R0.1-SNAPSHOT</version>
+            <groupId>net.md_5</groupId>
+            <artifactId>bungeecord-api</artifactId>
+            <version>1.8-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
 
@@ -68,12 +68,11 @@
             </exclusions>
         </dependency>
 
-        <!-- Gson for JSON (provided by Paper, but needed for compile) -->
+        <!-- Gson for JSON (BungeeCord includes Gson, but we shade our own to avoid version conflicts) -->
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
             <version>2.10.1</version>
-            <scope>provided</scope>
         </dependency>
     </dependencies>
 
@@ -116,6 +115,10 @@
                                     <pattern>kotlin</pattern>
                                     <shadedPattern>com.mcsets.shaded.kotlin</shadedPattern>
                                 </relocation>
+                                <relocation>
+                                    <pattern>com.google.gson</pattern>
+                                    <shadedPattern>com.mcsets.shaded.gson</shadedPattern>
+                                </relocation>
                             </relocations>
                             <filters>
                                 <filter>
@@ -147,6 +150,13 @@
                                 <!-- Keep all classes from OkHttp -->
                                 <filter>
                                     <artifact>com.squareup.okhttp3:okhttp</artifact>
+                                    <includes>
+                                        <include>**</include>
+                                    </includes>
+                                </filter>
+                                <!-- Keep all classes from Gson -->
+                                <filter>
+                                    <artifact>com.google.code.gson:gson</artifact>
                                     <includes>
                                         <include>**</include>
                                     </includes>

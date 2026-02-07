@@ -1,4 +1,4 @@
-# MCSets SetStore Plugin Configuration
+# MCSets SetStore Plugin Configuration (BungeeCord/Waterfall)
 # Documentation: https://docs.mcsets.com/setstore/plugin
 
 # Your server API key from the SetStore dashboard
@@ -16,7 +16,7 @@ api:
 server:
   # Override server IP (leave empty for auto-detection)
   ip: ""
-  # Override server port (0 for auto-detection)
+  # Override server port (0 for auto-detection from proxy listeners)
   port: 0
 
 # WebSocket Settings
@@ -43,9 +43,9 @@ heartbeat:
 
 # Delivery Settings
 delivery:
-  # Delay between command executions in ticks (20 ticks = 1 second)
-  command-delay: 5
-  # Require player to be online to execute commands
+  # Delay between command executions in milliseconds
+  command-delay: 500
+  # Require player to be online on the proxy to execute commands
   require-online: false
   # Queue deliveries for offline players
   queue-offline: true

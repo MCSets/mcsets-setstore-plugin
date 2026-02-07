@@ -11,11 +11,11 @@ package com.mcsets.setstore.commands;
 
 import com.mcsets.setstore.SetStorePlugin;
 import com.mcsets.setstore.models.VerifyResponse;
-import org.bukkit.Bukkit;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
+import net.md_5.bungee.api.CommandSender;
+import net.md_5.bungee.api.ProxyServer;
+import net.md_5.bungee.api.chat.TextComponent;
+import net.md_5.bungee.api.connection.ProxiedPlayer;
+import net.md_5.bungee.api.plugin.Command;
 
 /**
  * Command handler for player verification.
@@ -24,7 +24,7 @@ import org.bukkit.entity.Player;
  * @author MCSets
  * @version 1.0.0
  */
-public class VerifyCommand implements CommandExecutor {
+public class VerifyCommand extends Command {
 
     private final SetStorePlugin plugin;
 
@@ -34,72 +34,75 @@ public class VerifyCommand implements CommandExecutor {
      * @param plugin The plugin instance
      */
     public VerifyCommand(SetStorePlugin plugin) {
+        super("verify", "mcsets.verify");
         this.plugin = plugin;
     }
 
     @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!(sender instanceof Player)) {
-            sender.sendMessage(plugin.getPluginConfig().formatMessage("&cThis command can only be used by players!"));
-            return true;
+    public void execute(CommandSender sender, String[] args) {
+        if (!(sender instanceof ProxiedPlayer)) {
+            sender.sendMessage(new TextComponent(
+                    plugin.getPluginConfig().formatMessage("&cThis command can only be used by players!")));
+            return;
         }
 
-        final Player player = (Player) sender;
+        final ProxiedPlayer player = (ProxiedPlayer) sender;
 
         if (!player.hasPermission("mcsets.verify")) {
-            player.sendMessage(plugin.getPluginConfig().getMessage("no-permission"));
-            return true;
+            player.sendMessage(new TextComponent(
+                    plugin.getPluginConfig().getMessage("no-permission")));
+            return;
         }
 
         if (!plugin.isConnected()) {
-            player.sendMessage(plugin.getPluginConfig().formatMessage("&cSetStore is not connected. Please try again later."));
-            return true;
+            player.sendMessage(new TextComponent(
+                    plugin.getPluginConfig().formatMessage("&cSetStore is not connected. Please try again later.")));
+            return;
         }
 
-        player.sendMessage(plugin.getPluginConfig().formatMessage("&7Generating verification code..."));
+        player.sendMessage(new TextComponent(
+                plugin.getPluginConfig().formatMessage("&7Generating verification code...")));
 
         // Generate verification code async
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+        ProxyServer.getInstance().getScheduler().runAsync(plugin, () -> {
             try {
                 VerifyResponse response = plugin.getApi().verify(
                     player.getName(),
                     player.getUniqueId().toString()
                 );
 
-                // Send response on main thread
-                Bukkit.getScheduler().runTask(plugin, () -> {
-                    if (response != null && response.isSuccess()) {
-                        String code = response.getCode();
-                        int expiresInMinutes = response.getExpiresIn() / 60;
-                        String storeUrl = response.getStoreUrl();
+                if (response != null && response.isSuccess()) {
+                    String code = response.getCode();
+                    int expiresInMinutes = response.getExpiresIn() / 60;
+                    String storeUrl = response.getStoreUrl();
 
-                        player.sendMessage(plugin.getPluginConfig().getMessage("verify-code",
-                            "{code}", code));
-                        player.sendMessage(plugin.getPluginConfig().getMessage("verify-expires",
-                            "{minutes}", String.valueOf(expiresInMinutes)));
+                    player.sendMessage(new TextComponent(
+                            plugin.getPluginConfig().getMessage("verify-code",
+                                "{code}", code)));
+                    player.sendMessage(new TextComponent(
+                            plugin.getPluginConfig().getMessage("verify-expires",
+                                "{minutes}", String.valueOf(expiresInMinutes))));
 
-                        if (storeUrl != null && !storeUrl.isEmpty()) {
-                            player.sendMessage(plugin.getPluginConfig().getMessage("verify-instructions",
-                                "{url}", storeUrl));
-                        }
-
-                        plugin.logInfo("Player " + player.getName() + " generated verification code: " + code);
-                    } else {
-                        String errorMsg = response != null ? response.getMessage() : "Unknown error";
-                        player.sendMessage(plugin.getPluginConfig().formatMessage(
-                            "&cFailed to generate verification code: " + errorMsg));
+                    if (storeUrl != null && !storeUrl.isEmpty()) {
+                        player.sendMessage(new TextComponent(
+                                plugin.getPluginConfig().getMessage("verify-instructions",
+                                    "{url}", storeUrl)));
                     }
-                });
+
+                    plugin.logInfo("Player " + player.getName() + " generated verification code: " + code);
+                } else {
+                    String errorMsg = response != null ? response.getMessage() : "Unknown error";
+                    player.sendMessage(new TextComponent(
+                            plugin.getPluginConfig().formatMessage(
+                                "&cFailed to generate verification code: " + errorMsg)));
+                }
 
             } catch (Exception e) {
-                Bukkit.getScheduler().runTask(plugin, () -> {
-                    player.sendMessage(plugin.getPluginConfig().formatMessage(
-                        "&cAn error occurred while generating your verification code."));
-                });
+                player.sendMessage(new TextComponent(
+                        plugin.getPluginConfig().formatMessage(
+                            "&cAn error occurred while generating your verification code.")));
                 plugin.logError("Error generating verification code for " + player.getName() + ": " + e.getMessage());
             }
         });
-
-        return true;
     }
 }

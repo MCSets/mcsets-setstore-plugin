@@ -19,25 +19,26 @@ import com.mcsets.setstore.models.ConnectResponse;
 import com.mcsets.setstore.models.HeartbeatResponse;
 import com.mcsets.setstore.models.WebSocketConfig;
 import com.mcsets.setstore.websocket.SetStoreWebSocket;
-import org.bukkit.Bukkit;
-import org.bukkit.command.PluginCommand;
-import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitTask;
+import net.md_5.bungee.api.ProxyServer;
+import net.md_5.bungee.api.connection.ProxiedPlayer;
+import net.md_5.bungee.api.plugin.Plugin;
+
+import net.md_5.bungee.api.scheduler.ScheduledTask;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 /**
- * Main plugin class for MCSets SetStore integration.
- * Handles automatic delivery of store purchases to Minecraft servers.
+ * Main plugin class for MCSets SetStore integration (BungeeCord/Waterfall).
+ * Handles automatic delivery of store purchases via proxy commands.
  *
  * @author MCSets
  * @version 1.0.0
  */
-public class SetStorePlugin extends JavaPlugin {
+public class SetStorePlugin extends Plugin {
 
     private static SetStorePlugin instance;
 
@@ -46,8 +47,8 @@ public class SetStorePlugin extends JavaPlugin {
     private SetStoreWebSocket webSocket;
     private DeliveryExecutor deliveryExecutor;
 
-    private BukkitTask heartbeatTask;
-    private BukkitTask pollingTask;
+    private ScheduledTask heartbeatTask;
+    private ScheduledTask pollingTask;
 
     private boolean connected;
     private int serverId = -1;
@@ -57,14 +58,11 @@ public class SetStorePlugin extends JavaPlugin {
     public void onEnable() {
         instance = this;
 
-        saveDefaultConfig();
-
         pluginConfig = new PluginConfig(this);
 
         if (!pluginConfig.isConfigured()) {
             logError("API key not configured! Please set your API key in config.yml");
             logError("Get your API key from: https://mcsets.com/dashboard/servers");
-            getServer().getPluginManager().disablePlugin(this);
             return;
         }
 
@@ -74,9 +72,9 @@ public class SetStorePlugin extends JavaPlugin {
         registerCommands();
         registerListeners();
 
-        Bukkit.getScheduler().runTaskAsynchronously(this, this::connect);
+        ProxyServer.getInstance().getScheduler().runAsync(this, this::connect);
 
-        logInfo("MCSets SetStore plugin enabled!");
+        logInfo("MCSets SetStore plugin enabled! (BungeeCord)");
     }
 
     @Override
@@ -99,25 +97,18 @@ public class SetStorePlugin extends JavaPlugin {
      * Registers all plugin commands.
      */
     private void registerCommands() {
-        PluginCommand verifyCmd = getCommand("verify");
-        PluginCommand setstoreCmd = getCommand("setstore");
-
-        if (verifyCmd != null) {
-            verifyCmd.setExecutor(new VerifyCommand(this));
-        }
-
-        if (setstoreCmd != null) {
-            SetStoreCommand cmd = new SetStoreCommand(this);
-            setstoreCmd.setExecutor(cmd);
-            setstoreCmd.setTabCompleter(cmd);
-        }
+        ProxyServer.getInstance().getPluginManager().registerCommand(this,
+                new VerifyCommand(this));
+        ProxyServer.getInstance().getPluginManager().registerCommand(this,
+                new SetStoreCommand(this));
     }
 
     /**
      * Registers all event listeners.
      */
     private void registerListeners() {
-        getServer().getPluginManager().registerEvents(new PlayerListener(this), this);
+        ProxyServer.getInstance().getPluginManager().registerListener(this,
+                new PlayerListener(this));
     }
 
     /**
@@ -142,7 +133,7 @@ public class SetStorePlugin extends JavaPlugin {
 
         String serverIp = pluginConfig.getServerIp();
         int serverPort = pluginConfig.getServerPort();
-        String serverVersion = Bukkit.getBukkitVersion().split("-")[0];
+        String serverVersion = ProxyServer.getInstance().getVersion();
         List<String> onlinePlayers = getOnlinePlayerNames();
 
         try {
@@ -177,7 +168,7 @@ public class SetStorePlugin extends JavaPlugin {
 
         if (response.getPendingDeliveries() > 0) {
             logInfo("Pending deliveries: " + response.getPendingDeliveries());
-            Bukkit.getScheduler().runTaskAsynchronously(this, deliveryExecutor::processQueue);
+            ProxyServer.getInstance().getScheduler().runAsync(this, deliveryExecutor::processQueue);
         }
 
         WebSocketConfig wsConfig = response.getWebsocket();
@@ -209,8 +200,8 @@ public class SetStorePlugin extends JavaPlugin {
      */
     private void scheduleReconnect() {
         connected = false;
-        long delayTicks = pluginConfig.getWebSocketReconnectDelay() * 20L;
-        Bukkit.getScheduler().runTaskLaterAsynchronously(this, this::connect, delayTicks);
+        int delaySec = pluginConfig.getWebSocketReconnectDelay();
+        ProxyServer.getInstance().getScheduler().schedule(this, this::connect, delaySec, TimeUnit.SECONDS);
     }
 
     /**
@@ -228,9 +219,9 @@ public class SetStorePlugin extends JavaPlugin {
      * Starts the heartbeat task to keep the server marked as online.
      */
     private void startHeartbeat() {
-        int intervalTicks = pluginConfig.getHeartbeatInterval() * 20;
+        int intervalSec = pluginConfig.getHeartbeatInterval();
 
-        heartbeatTask = Bukkit.getScheduler().runTaskTimerAsynchronously(this, () -> {
+        heartbeatTask = ProxyServer.getInstance().getScheduler().schedule(this, () -> {
             if (!connected) {
                 return;
             }
@@ -251,21 +242,21 @@ public class SetStorePlugin extends JavaPlugin {
             } catch (Exception e) {
                 logError("Heartbeat error: " + e.getMessage());
             }
-        }, intervalTicks, intervalTicks);
+        }, intervalSec, intervalSec, TimeUnit.SECONDS);
     }
 
     /**
      * Starts the polling task as a fallback for WebSocket.
      */
     private void startPolling() {
-        int intervalTicks = pluginConfig.getPollingInterval() * 20;
+        int intervalSec = pluginConfig.getPollingInterval();
 
-        pollingTask = Bukkit.getScheduler().runTaskTimerAsynchronously(this, () -> {
+        pollingTask = ProxyServer.getInstance().getScheduler().schedule(this, () -> {
             if (connected && (webSocket == null || !webSocket.isConnected())) {
                 logDebug("Polling for deliveries...");
                 deliveryExecutor.processQueue();
             }
-        }, intervalTicks, intervalTicks);
+        }, intervalSec, intervalSec, TimeUnit.SECONDS);
     }
 
     /**
@@ -279,7 +270,7 @@ public class SetStorePlugin extends JavaPlugin {
             webSocket = null;
         }
 
-        Bukkit.getScheduler().runTaskAsynchronously(this, this::connect);
+        ProxyServer.getInstance().getScheduler().runAsync(this, this::connect);
     }
 
     /**
@@ -288,9 +279,9 @@ public class SetStorePlugin extends JavaPlugin {
      * @return List of player names
      */
     public List<String> getOnlinePlayerNames() {
-        Collection<? extends Player> players = Bukkit.getOnlinePlayers();
+        Collection<ProxiedPlayer> players = ProxyServer.getInstance().getPlayers();
         return players.stream()
-                .map(Player::getName)
+                .map(ProxiedPlayer::getName)
                 .collect(Collectors.toList());
     }
 
@@ -300,7 +291,7 @@ public class SetStorePlugin extends JavaPlugin {
      * @param players List of player names
      */
     public void notifyOnlinePlayers(List<String> players) {
-        Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
+        ProxyServer.getInstance().getScheduler().runAsync(this, () -> {
             try {
                 api.reportOnlinePlayers(players);
                 logDebug("Reported " + players.size() + " online players");

@@ -1,0 +1,5 @@
+name: MCSetsSetStore
+version: ${project.version}
+main: com.mcsets.setstore.SetStorePlugin
+description: MCSets SetStore integration for automatic purchase delivery (BungeeCord/Waterfall)
+author: MCSets
